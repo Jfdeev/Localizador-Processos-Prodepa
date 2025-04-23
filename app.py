@@ -80,33 +80,54 @@ st.dataframe(df)
 
 # ====== Exportar para PDF ======
 def exportar_pdf(df: pd.DataFrame) -> bytes:
-    pdf = FPDF()
+    # 1) Escolha aqui as colunas que quer no PDF:
+    cols_export = ['PAE','CLIENTE','Andamento','Status contratual',
+                   'Vigência Início','Vigência Término']
+    # Se alguma não existir, cai pra todas:
+    if not set(cols_export).issubset(df.columns):
+        df_export = df.copy()
+    else:
+        df_export = df[cols_export]
+
+    # 2) Cria PDF em paisagem
+    pdf = FPDF(orientation='L', unit='mm', format='A4')
+    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
+
+    # 3) Título
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, "Relatório de Processos Filtrados", ln=True, align="C")
+    pdf.ln(4)
+
+    # 4) Prepara fonte para tabela
     pdf.set_font("Arial", size=8)
+    epw = pdf.w - 2 * pdf.l_margin            # espaço útil horizontal
+    col_width = epw / len(df_export.columns)  # largura por coluna
+    row_height = pdf.font_size * 1.5
 
-    col_width = pdf.w / (len(df.columns) + 1)
-    row_height = pdf.font_size + 1
+    # 5) Cabeçalho
+    for header in df_export.columns:
+        pdf.cell(col_width, row_height, str(header), border=1, align="C")
+    pdf.ln(row_height)
 
-    # Cabeçalho
-    for col in df.columns:
-        pdf.cell(col_width, row_height * 1.5, str(col), border=1)
-    pdf.ln(row_height * 1.5)
-
-    # Linhas
-    for _, row in df.iterrows():
+    # 6) Linhas de dados
+    for row in df_export.itertuples(index=False):
         for item in row:
-            pdf.cell(col_width, row_height, str(item), border=1)
+            text = str(item)
+            # opcional: truncar texto muito longo
+            if len(text) > 20:
+                text = text[:17] + "..."
+            pdf.cell(col_width, row_height, text, border=1)
         pdf.ln(row_height)
 
-    pdf_output = pdf.output(dest='S').encode('latin-1')  # <- Corrigido aqui
-    return pdf_output
-
+    # 7) Gera bytes do PDF
+    return pdf.output(dest="S").encode("latin-1")
 
 if not df.empty:
     pdf_bytes = exportar_pdf(df)
     st.download_button(
-        label="📄 Baixar dados filtrados em PDF",
+        label="📄 Baixar processos filtrados em PDF",
         data=pdf_bytes,
         file_name="processos_filtrados.pdf",
-        mime="application/pdf"
+        mime="application/pdf",
     )
