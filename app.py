@@ -75,14 +75,16 @@ else:
 
 
 df = data.copy()
-if 'CLIENTE' in df.columns:
-    df = df[df['CLIENTE'].isin(select_cliente)]
-if 'Andamento' in df.columns:
-    df = df[df['Andamento'].isin(selected_andamento)]
-if 'Status contratual' in df.columns:
-    df = df[df['Status contratual'].isin(selected_status)]
-if 'PAE' in df.columns:
-    df = df[df['PAE'].isin(selected_num_processo)]
+
+if selected_num_processo != num_processo:
+    df = df[df['PAE'].astype(str).isin([str(x) for x in selected_num_processo])]
+else:
+    if 'CLIENTE' in df.columns:
+        df = df[df['CLIENTE'].isin(select_cliente)]
+    if 'Andamento' in df.columns:
+        df = df[df['Andamento'].isin(selected_andamento)]
+    if 'Status contratual' in df.columns:
+        df = df[df['Status contratual'].isin(selected_status)]
 
 st.markdown(f"**Total de processos encontrados:** {len(df)}")
 
