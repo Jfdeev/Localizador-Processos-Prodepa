@@ -47,7 +47,7 @@ def load_data() -> pd.DataFrame:
         df['Setor'] = df['Setor']
     # PAE
     if 'N PAE' in df.columns:
-        df['PAE'] = df['Nº PAE']
+        df['PAE'] = df['N PAE']
     elif 'PAE' in df.columns:
         df['PAE'] = df['PAE']
 
