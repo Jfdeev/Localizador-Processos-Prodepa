@@ -1,7 +1,8 @@
 import streamlit as st 
 import pandas as pd
-import altair as alt
 from datetime import datetime
+from fpdf import FPDF
+import io
 
 st.set_page_config(page_title="Localizador de Processos PAE", layout="wide")
 st.title("Localizador de Processos PAE")
@@ -58,13 +59,11 @@ selected_status = st.sidebar.multiselect("Status Contratual", status, default=st
 st.subheader("Busca por Número do Processo")
 search_text = st.text_input("Digite parte do número do processo:")
 num_processo = sorted(data['PAE'].dropna().unique()) if 'PAE' in data.columns else []
-
 sugestoes = [str(p) for p in num_processo if search_text in str(p)] if search_text else []
 selected_processo = st.selectbox("Selecione o processo:", sugestoes) if sugestoes else None
 
 # Filtragem
 df = data.copy()
-
 if selected_processo:
     df = df[df['PAE'].astype(str) == selected_processo]
 else:
@@ -78,3 +77,36 @@ else:
 st.markdown(f"**Total de processos encontrados:** {len(df)}")
 st.header("Dados Filtrados")
 st.dataframe(df)
+
+# ====== Exportar para PDF ======
+def exportar_pdf(df: pd.DataFrame) -> bytes:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=8)
+
+    col_width = pdf.w / (len(df.columns) + 1)
+    row_height = pdf.font_size + 1
+
+    # Cabeçalho
+    for col in df.columns:
+        pdf.cell(col_width, row_height * 1.5, str(col), border=1)
+    pdf.ln(row_height * 1.5)
+
+    # Linhas
+    for _, row in df.iterrows():
+        for item in row:
+            pdf.cell(col_width, row_height, str(item), border=1)
+        pdf.ln(row_height)
+
+    buffer = io.BytesIO()
+    pdf.output(buffer)
+    return buffer.getvalue()
+
+if not df.empty:
+    pdf_bytes = exportar_pdf(df)
+    st.download_button(
+        label="📄 Baixar dados filtrados em PDF",
+        data=pdf_bytes,
+        file_name="processos_filtrados.pdf",
+        mime="application/pdf"
+    )
