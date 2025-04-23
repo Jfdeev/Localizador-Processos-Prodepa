@@ -20,15 +20,6 @@ def load_data() -> pd.DataFrame:
         if date_col in df.columns:
             df[date_col] = pd.to_datetime(df[date_col], dayfirst=True, errors='coerce')
 
-    if 'VALOR GLOBAL ATUAL' in df.columns:
-        cleaned = (
-            df['VALOR GLOBAL ATUAL']
-            .astype(str)
-            .str.replace(r"[R$\. ]", "", regex=True)
-            .str.replace(",", ".")
-        )
-        df['Valor global Atual'] = pd.to_numeric(cleaned, errors='coerce')
-
     if 'Vencimento em dias' in df.columns:
         df['Vencimento em dias'] = pd.to_numeric(df['Vencimento em dias'], errors='coerce')
 
