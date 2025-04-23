@@ -98,9 +98,9 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
             pdf.cell(col_width, row_height, str(item), border=1)
         pdf.ln(row_height)
 
-    buffer = io.BytesIO()
-    pdf.output(buffer)
-    return buffer.getvalue()
+    pdf_output = pdf.output(dest='S').encode('latin-1')  # <- Corrigido aqui
+    return pdf_output
+
 
 if not df.empty:
     pdf_bytes = exportar_pdf(df)
