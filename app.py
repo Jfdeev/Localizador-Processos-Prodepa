@@ -82,7 +82,7 @@ st.dataframe(df)
 def exportar_pdf(df: pd.DataFrame) -> bytes:
     # 1) Escolha aqui as colunas que quer no PDF:
     cols_export = ['PAE','CLIENTE','Andamento','Status contratual',
-                   'Vigência Início','Vigência Término']
+                   'Vigência Início','Vigência Término', 'Valor global Atual',]
     # Se alguma não existir, cai pra todas:
     if not set(cols_export).issubset(df.columns):
         df_export = df.copy()
