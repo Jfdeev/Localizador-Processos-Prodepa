@@ -46,7 +46,7 @@ def load_data() -> pd.DataFrame:
     elif 'Setor' in df.columns:
         df['Setor'] = df['Setor']
     # PAE
-    if 'Nº PAE' in df.columns:
+    if 'N PAE' in df.columns:
         df['PAE'] = df['Nº PAE']
     elif 'PAE' in df.columns:
         df['PAE'] = df['PAE']
@@ -61,7 +61,7 @@ st.sidebar.header("Filtros")
 cliente = sorted(
     str(x) for x in data['CLIENTE'].dropna().unique()
 ) if 'CLIENTE' in data.columns else []
-select_cliente = st.sidebar.multiselect("Cliente", cliente, default=cliente)
+select_cliente = st.sidebar.multiselect("Cliente", cliente, default=cliente[:1])
 andamento = sorted(data['Andamento'].dropna().unique()) if 'Andamento' in data.columns else []
 selected_andamento = st.sidebar.multiselect("Andamento", andamento, default=andamento)
 status = sorted(data['Status contratual'].dropna().unique()) if 'Status contratual' in data.columns else []
