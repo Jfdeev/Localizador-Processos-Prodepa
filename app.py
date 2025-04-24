@@ -40,9 +40,33 @@ data = load_data()
 
 st.sidebar.header("Filtros")
 cliente = sorted(str(x) for x in data['CLIENTE'].dropna().unique()) if 'CLIENTE' in data.columns else []
-select_cliente = st.sidebar.multiselect("Cliente", cliente, default=cliente[:1])
+
+# Estado inicial para cliente
+if "clientes_selecionados" not in st.session_state:
+    st.session_state["clientes_selecionados"] = cliente[:1]
+
+st.sidebar.markdown("### Cliente")
+col1, col2 = st.sidebar.columns([1, 1])
+
+with col1:
+    if st.button("✅ Todos"):
+        st.session_state["clientes_selecionados"] = cliente
+
+with col2:
+    if st.button("❌ Nenhum"):
+        st.session_state["clientes_selecionados"] = []
+
+select_cliente = st.sidebar.multiselect(
+    "Cliente",
+    options=cliente,
+    default=st.session_state["clientes_selecionados"],
+    key="clientes_selecionados"
+)
+
+# Filtros adicionais
 andamento = sorted(data['Andamento'].dropna().unique()) if 'Andamento' in data.columns else []
 selected_andamento = st.sidebar.multiselect("Andamento", andamento, default=andamento)
+
 status = sorted(data['Status contratual'].dropna().unique()) if 'Status contratual' in data.columns else []
 selected_status = st.sidebar.multiselect("Status Contratual", status, default=status)
 
@@ -71,47 +95,41 @@ st.dataframe(df)
 
 # ====== Exportar para PDF ======
 def exportar_pdf(df: pd.DataFrame) -> bytes:
-    # 1) Escolha aqui as colunas que quer no PDF:
+    # Colunas que deseja exportar
     cols_export = ['PAE','CLIENTE','Andamento','Status contratual',
                    'Vigência Início','Vigência Término', 'VALOR GLOBAL ATUAL', 'Setor']
-    # Se alguma não existir, cai pra todas:
+    # Se não existirem todas, exporta tudo
     if not set(cols_export).issubset(df.columns):
         df_export = df.copy()
     else:
         df_export = df[cols_export]
 
-    # 2) Cria PDF em paisagem
+    # PDF em paisagem
     pdf = FPDF(orientation='L', unit='mm', format='A4')
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # 3) Título
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 10, "Relatório de Processos Filtrados", ln=True, align="C")
     pdf.ln(4)
 
-    # 4) Prepara fonte para tabela
     pdf.set_font("Arial", size=8)
-    epw = pdf.w - 2 * pdf.l_margin            # espaço útil horizontal
-    col_width = epw / len(df_export.columns)  # largura por coluna
+    epw = pdf.w - 2 * pdf.l_margin
+    col_width = epw / len(df_export.columns)
     row_height = pdf.font_size * 1.5
 
-    # 5) Cabeçalho
     for header in df_export.columns:
         pdf.cell(col_width, row_height, str(header), border=1, align="C")
     pdf.ln(row_height)
 
-    # 6) Linhas de dados
     for row in df_export.itertuples(index=False):
         for item in row:
             text = str(item)
-            # opcional: truncar texto muito longo
             if len(text) > 20:
                 text = text[:17] + "..."
             pdf.cell(col_width, row_height, text, border=1)
         pdf.ln(row_height)
 
-    # 7) Gera bytes do PDF
     return pdf.output(dest="S").encode("latin-1")
 
 if not df.empty:
