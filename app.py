@@ -41,27 +41,26 @@ data = load_data()
 st.sidebar.header("Filtros")
 cliente = sorted(str(x) for x in data['CLIENTE'].dropna().unique()) if 'CLIENTE' in data.columns else []
 
-# Estado inicial para cliente
+# Inicialização segura do session_state
 if "clientes_selecionados" not in st.session_state:
     st.session_state["clientes_selecionados"] = cliente[:1]
 
-st.sidebar.markdown("### Cliente")
-col1, col2 = st.sidebar.columns([1, 1])
-
-with col1:
-    if st.button("✅ Todos"):
+# Formulário para controle dos botões de cliente
+with st.sidebar.form(key="form_clientes"):
+    st.markdown("### Cliente")
+    col1, col2 = st.columns([1, 1])
+    todos = col1.form_submit_button("✅ Todos")
+    nenhum = col2.form_submit_button("❌ Nenhum")
+    if todos:
         st.session_state["clientes_selecionados"] = cliente
-
-with col2:
-    if st.button("❌ Nenhum"):
+    if nenhum:
         st.session_state["clientes_selecionados"] = []
-
-select_cliente = st.sidebar.multiselect(
-    "Cliente",
-    options=cliente,
-    default=st.session_state["clientes_selecionados"],
-    key="clientes_selecionados"
-)
+    select_cliente = st.multiselect(
+        "Cliente",
+        options=cliente,
+        default=st.session_state["clientes_selecionados"],
+        key="clientes_selecionados"
+    )
 
 # Filtros adicionais
 andamento = sorted(data['Andamento'].dropna().unique()) if 'Andamento' in data.columns else []
@@ -95,16 +94,13 @@ st.dataframe(df)
 
 # ====== Exportar para PDF ======
 def exportar_pdf(df: pd.DataFrame) -> bytes:
-    # Colunas que deseja exportar
     cols_export = ['PAE','CLIENTE','Andamento','Status contratual',
                    'Vigência Início','Vigência Término', 'VALOR GLOBAL ATUAL', 'Setor']
-    # Se não existirem todas, exporta tudo
     if not set(cols_export).issubset(df.columns):
         df_export = df.copy()
     else:
         df_export = df[cols_export]
 
-    # PDF em paisagem
     pdf = FPDF(orientation='L', unit='mm', format='A4')
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
