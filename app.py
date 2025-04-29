@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 from fpdf import FPDF
-import io
 
 # Configuração da página
 st.set_page_config(page_title="Localizador de Processos PAE", layout="wide")
@@ -107,6 +105,11 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
     cols = ['PAE', 'CLIENTE', 'Andamento', 'Status contratual',
             'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL','Setor']
     export_df = df[cols] if set(cols).issubset(df.columns) else df.copy()
+
+    ## Formatar datas
+    for date_col in ['Vigência Início', 'Vigência Término']:
+        if date_col in export_df.columns:
+            export_df[date_col] = export_df[date_col].dt.strftime('%d/%m/%Y')
 
     pdf = FPDF(orientation='L', unit='mm', format='A4')
     pdf.set_auto_page_break(True, 15)
