@@ -106,7 +106,7 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
             'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL','Setor']
     export_df = df[cols] if set(cols).issubset(df.columns) else df.copy()
 
-    ## Formatar datas
+    # Formatar datas
     for date_col in ['Vigência Início', 'Vigência Término']:
         if date_col in export_df.columns:
             export_df[date_col] = export_df[date_col].dt.strftime('%d/%m/%Y')
@@ -132,7 +132,7 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
     for row in export_df.itertuples(index=False):
         for val in row:
             txt = str(val)
-            pdf.cell(col_w, row_h, txt[:20] + ('...' if len(txt)>20 else ''), border=1)
+            pdf.cell(col_w, row_h, txt[:20] + ('...' if len(txt) > 20 else ''), border=1)
         pdf.ln(row_h)
 
     return pdf.output(dest='S').encode('latin-1')
