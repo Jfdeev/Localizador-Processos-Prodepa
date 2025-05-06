@@ -137,7 +137,6 @@ st.markdown(f"**Total de processos encontrados:** {len(contratos_filtrados)}")
 st.dataframe(contratos_filtrados)
 
 if not contratos_filtrados.empty:
-    # Gera o PDF para download
     pdf_bytes = exportar_pdf(contratos_filtrados)
     st.download_button(
         '📄 Baixar processos filtrados em PDF',
