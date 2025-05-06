@@ -104,7 +104,7 @@ ano_vencimento_selecionado = st.sidebar.number_input(
     min_value=2000,
     max_value=2035,
     step=1,
-    value=pd.Timestamp.now().year
+    value=2025
 )
 
 # Filtrar contratos pelo ano de vencimento
