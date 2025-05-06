@@ -41,15 +41,14 @@ def load_data() -> pd.DataFrame:
 
 # Carrega dados
 data = load_data()
-
 # Sidebar: filtros de Cliente
 st.sidebar.header("Filtros")
 clientes = sorted(data['CLIENTE'].dropna().unique()) if 'CLIENTE' in data.columns else []
 
 # Inicialização de session_state
 if 'clientes_selecionados' not in st.session_state:
-    # Se houver mais de um cliente, pré-seleciona todos; senão, deixa vazio
-    st.session_state.clientes_selecionados = clientes.copy() if len(clientes) > 1 else []
+    # Se houver clientes, pré-seleciona o primeiro cliente; senão, deixa vazio
+    st.session_state.clientes_selecionados = clientes[:1] if clientes else []
 
 # Botões de seleção rápida
 col1, col2 = st.sidebar.columns(2)
@@ -73,6 +72,30 @@ selected_andamento = st.sidebar.multiselect("Andamento", andamento, default=anda
 
 status = sorted(data['Status contratual'].dropna().unique()) if 'Status contratual' in data.columns else []
 selected_status = st.sidebar.multiselect("Status Contratual", status, default=status)
+
+# Filtro por mês e ano de vencimento
+st.sidebar.subheader("Filtro por Mês e Ano de Vencimento")
+meses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+]
+mes_selecionado = st.sidebar.selectbox("Selecione o mês", range(1, 13), format_func=lambda x: meses[x-1])
+ano_selecionado = st.sidebar.number_input("Selecione o ano", min_value=2000, max_value=2026, step=1, value=pd.Timestamp.now().year)
+
+# Filtrar contratos pelo mês e ano de vencimento
+if 'Vigência Término' in data.columns:
+    data['Mês de Vencimento'] = data['Vigência Término'].dt.month
+    data['Ano de Vencimento'] = data['Vigência Término'].dt.year
+    contratos_filtrados = data[
+        (data['Mês de Vencimento'] == mes_selecionado) & 
+        (data['Ano de Vencimento'] == ano_selecionado)
+    ]
+else:
+    contratos_filtrados = pd.DataFrame()
+
+# Exibir contratos do mês e ano selecionados
+st.subheader(f"Contratos com vencimento em {meses[mes_selecionado-1]} de {ano_selecionado}")
+st.dataframe(contratos_filtrados)
 
 # Busca por número de processo
 st.subheader("Busca por Número do Processo")
