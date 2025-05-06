@@ -133,17 +133,10 @@ else:
 
 # Exibir contratos do mês e ano selecionados
 st.subheader(f"Contratos com vencimento em {meses[mes_selecionado-1]} de {ano_selecionado}")
+st.markdown(f"**Total de processos encontrados:** {len(contratos_filtrados)}")
 st.dataframe(contratos_filtrados)
 
 if not contratos_filtrados.empty:
-    # Adiciona uma coluna com a contagem de contratos filtrados
-    contratos_filtrados['Quantidade'] = contratos_filtrados.groupby('CLIENTE')['CLIENTE'].transform('count')
-
-    # Exibe os contratos filtrados com a contagem
-    st.subheader("Resumo dos Contratos Filtrados")
-    resumo = contratos_filtrados[['CLIENTE', 'Quantidade']].drop_duplicates().sort_values(by='Quantidade', ascending=False)
-    st.dataframe(resumo)
-
     # Gera o PDF para download
     pdf_bytes = exportar_pdf(contratos_filtrados)
     st.download_button(
@@ -172,18 +165,11 @@ else:
 
 # Exibir contratos do ano selecionado
 st.subheader(f"Contratos com vencimento no ano de {ano_vencimento_selecionado}")
+st.markdown(f"**Total de processos encontrados:** {len(contratos_ano_filtrados)}")
 st.dataframe(contratos_ano_filtrados)
 
 # Botão de download de PDF
 if not contratos_ano_filtrados.empty:
-    # Adiciona uma coluna com a contagem de contratos filtrados
-    contratos_filtrados['Quantidade'] = contratos_filtrados.groupby('CLIENTE')['CLIENTE'].transform('count')
-
-    # Exibe os contratos filtrados com a contagem
-    st.subheader("Resumo dos Contratos Filtrados")
-    resumo = contratos_filtrados[['CLIENTE', 'Quantidade']].drop_duplicates().sort_values(by='Quantidade', ascending=False)
-    st.dataframe(resumo)
-    
     pdf_bytes = exportar_pdf(contratos_ano_filtrados)
     st.download_button(
         '📄 Baixar processos filtrados em PDF',
