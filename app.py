@@ -6,6 +6,44 @@ from fpdf import FPDF
 st.set_page_config(page_title="Localizador de Processos PAE", layout="wide")
 st.title("Localizador de Processos PAE")
 
+
+def exportar_pdf(df: pd.DataFrame) -> bytes:
+    cols = ['PAE', 'CLIENTE', 'Andamento', 'Status contratual',
+            'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL','Setor']
+    export_df = df[cols] if set(cols).issubset(df.columns) else df.copy()
+
+    # Formatar datas
+    for date_col in ['Vigência Início', 'Vigência Término']:
+        if date_col in export_df.columns:
+            export_df[date_col] = export_df[date_col].dt.strftime('%d/%m/%Y')
+
+    pdf = FPDF(orientation='L', unit='mm', format='A4')
+    pdf.set_auto_page_break(True, 15)
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(0, 10, 'Relatório de Processos Filtrados', 0, 1, 'C')
+    pdf.ln(4)
+    pdf.set_font('Arial', '', 8)
+
+    epw = pdf.w - 2*pdf.l_margin
+    col_w = epw / len(export_df.columns)
+    row_h = pdf.font_size * 1.5
+
+    # Cabeçalhos
+    for h in export_df.columns:
+        pdf.cell(col_w, row_h, str(h), border=1, align='C')
+    pdf.ln(row_h)
+
+    # Linhas
+    for row in export_df.itertuples(index=False):
+        for val in row:
+            txt = str(val)
+            pdf.cell(col_w, row_h, txt[:20] + ('...' if len(txt) > 20 else ''), border=1)
+        pdf.ln(row_h)
+
+    return pdf.output(dest='S').encode('latin-1')
+
+
 # Função para carregar os dados
 def load_data() -> pd.DataFrame:
     url = (
@@ -97,6 +135,16 @@ else:
 st.subheader(f"Contratos com vencimento em {meses[mes_selecionado-1]} de {ano_selecionado}")
 st.dataframe(contratos_filtrados)
 
+if not contratos_filtrados.empty:
+    pdf_bytes = exportar_pdf(contratos_filtrados)
+    st.download_button(
+        '📄 Baixar processos filtrados em PDF',
+        data=pdf_bytes,
+        file_name='processos_filtrados_mes_ano.pdf',
+        mime='application/pdf',
+        key='download_mes_ano'
+    )
+
 # Filtro de vencimento por ano
 st.sidebar.subheader("Filtro por Ano de Vencimento")
 ano_vencimento_selecionado = st.sidebar.number_input(
@@ -117,7 +165,16 @@ else:
 st.subheader(f"Contratos com vencimento no ano de {ano_vencimento_selecionado}")
 st.dataframe(contratos_ano_filtrados)
 
-
+# Botão de download de PDF
+if not contratos_ano_filtrados.empty:
+    pdf_bytes = exportar_pdf(contratos_ano_filtrados)
+    st.download_button(
+        '📄 Baixar processos filtrados em PDF',
+        data=pdf_bytes,
+        file_name='processos_filtrados_ano.pdf',
+        mime='application/pdf',
+        key='download_ano'
+    )
 
 # Busca por número de processo
 st.subheader("Busca por Número do Processo")
@@ -145,43 +202,6 @@ st.markdown(f"**Total de processos encontrados:** {len(df)}")
 st.header("Dados Filtrados")
 st.dataframe(df)
 
-# Função para exportar PDF
-def exportar_pdf(df: pd.DataFrame) -> bytes:
-    cols = ['PAE', 'CLIENTE', 'Andamento', 'Status contratual',
-            'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL','Setor']
-    export_df = df[cols] if set(cols).issubset(df.columns) else df.copy()
-
-    # Formatar datas
-    for date_col in ['Vigência Início', 'Vigência Término']:
-        if date_col in export_df.columns:
-            export_df[date_col] = export_df[date_col].dt.strftime('%d/%m/%Y')
-
-    pdf = FPDF(orientation='L', unit='mm', format='A4')
-    pdf.set_auto_page_break(True, 15)
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, 'Relatório de Processos Filtrados', 0, 1, 'C')
-    pdf.ln(4)
-    pdf.set_font('Arial', '', 8)
-
-    epw = pdf.w - 2*pdf.l_margin
-    col_w = epw / len(export_df.columns)
-    row_h = pdf.font_size * 1.5
-
-    # Cabeçalhos
-    for h in export_df.columns:
-        pdf.cell(col_w, row_h, str(h), border=1, align='C')
-    pdf.ln(row_h)
-
-    # Linhas
-    for row in export_df.itertuples(index=False):
-        for val in row:
-            txt = str(val)
-            pdf.cell(col_w, row_h, txt[:20] + ('...' if len(txt) > 20 else ''), border=1)
-        pdf.ln(row_h)
-
-    return pdf.output(dest='S').encode('latin-1')
-
 # Botão de download de PDF
 if not df.empty:
     pdf_bytes = exportar_pdf(df)
@@ -189,5 +209,6 @@ if not df.empty:
         '📄 Baixar processos filtrados em PDF',
         data=pdf_bytes,
         file_name='processos_filtrados.pdf',
-        mime='application/pdf'
+        mime='application/pdf',
+        key='download_pdf'
     )
