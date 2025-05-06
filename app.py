@@ -80,7 +80,7 @@ meses = [
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ]
 mes_selecionado = st.sidebar.selectbox("Selecione o mês", range(1, 13), format_func=lambda x: meses[x-1])
-ano_selecionado = st.sidebar.number_input("Selecione o ano", min_value=2000, max_value=2026, step=1, value=pd.Timestamp.now().year)
+ano_selecionado = st.sidebar.number_input("Selecione o ano", min_value=2000, max_value=2035, step=1, value=pd.Timestamp.now().year)
 
 # Filtrar contratos pelo mês e ano de vencimento
 if 'Vigência Término' in data.columns:
