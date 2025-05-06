@@ -97,6 +97,28 @@ else:
 st.subheader(f"Contratos com vencimento em {meses[mes_selecionado-1]} de {ano_selecionado}")
 st.dataframe(contratos_filtrados)
 
+# Filtro de vencimento por ano
+st.sidebar.subheader("Filtro por Ano de Vencimento")
+ano_vencimento_selecionado = st.sidebar.number_input(
+    "Selecione o ano de vencimento",
+    min_value=2000,
+    max_value=2035,
+    step=1,
+    value=pd.Timestamp.now().year
+)
+
+# Filtrar contratos pelo ano de vencimento
+if 'Ano de Vencimento' in data.columns:
+    contratos_ano_filtrados = data[data['Ano de Vencimento'] == ano_vencimento_selecionado]
+else:
+    contratos_ano_filtrados = pd.DataFrame()
+
+# Exibir contratos do ano selecionado
+st.subheader(f"Contratos com vencimento no ano de {ano_vencimento_selecionado}")
+st.dataframe(contratos_ano_filtrados)
+
+
+
 # Busca por número de processo
 st.subheader("Busca por Número do Processo")
 search_text = st.text_input("Digite parte do número do processo:")
