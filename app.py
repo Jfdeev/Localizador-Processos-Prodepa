@@ -7,8 +7,8 @@ st.set_page_config(page_title="Localizador de Processos PAE", layout="wide")
 st.title("Localizador de Processos PAE")
 
 def exportar_pdf(df: pd.DataFrame) -> bytes:
-    cols = ['PAE', 'CLIENTE', 'Andamento', 'Status contratual',
-            'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL','Setor']
+    cols = ['PAE', 'CLIENTE', 'Andamento', 'Setor', 'Status contratual',
+            'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL', 'CONTRATO', 'Instrumento Contratual']
     export_df = df[cols] if set(cols).issubset(df.columns) else df.copy()
 
     for date_col in ['Vigência Início', 'Vigência Término']:
