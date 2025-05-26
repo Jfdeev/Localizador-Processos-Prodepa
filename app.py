@@ -23,7 +23,7 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
     pdf.ln(4)
     pdf.set_font('Arial', '', 8)
     epw = pdf.w - 2*pdf.l_margin
-    col_w = epw / len(export_df.columns)
+    col_w = epw / len(export_df.columns) * 1.2  
     row_h = pdf.font_size * 1.5
 
     for h in export_df.columns:
