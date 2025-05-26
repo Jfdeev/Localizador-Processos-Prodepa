@@ -12,7 +12,6 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
             'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL','Setor']
     export_df = df[cols] if set(cols).issubset(df.columns) else df.copy()
 
-    # Formatar datas
     for date_col in ['Vigência Início', 'Vigência Término']:
         if date_col in export_df.columns:
             export_df[date_col] = export_df[date_col].dt.strftime('%d/%m/%Y')
@@ -24,17 +23,14 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
     pdf.cell(0, 10, 'Relatório de Processos Filtrados', 0, 1, 'C')
     pdf.ln(4)
     pdf.set_font('Arial', '', 8)
-
     epw = pdf.w - 2*pdf.l_margin
     col_w = epw / len(export_df.columns)
     row_h = pdf.font_size * 1.5
 
-    # Cabeçalhos
     for h in export_df.columns:
         pdf.cell(col_w, row_h, str(h), border=1, align='C')
     pdf.ln(row_h)
 
-    # Linhas
     for row in export_df.itertuples(index=False):
         for val in row:
             txt = str(val)
@@ -44,7 +40,6 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
     return pdf.output(dest='S').encode('latin-1')
 
 
-# Função para carregar os dados
 def load_data() -> pd.DataFrame:
     url = (
         "https://docs.google.com/spreadsheets/d/e/"
@@ -75,142 +70,126 @@ def load_data() -> pd.DataFrame:
     if 'N PAE' in df.columns:
         df['PAE'] = df['N PAE']
 
+    # Normaliza o nome da coluna de serviços (pode vir como 'SERVIÇO' ou 'Servico')
+    for orig in ['SERVIÇO', 'Servico', 'SERVICO']:
+        if orig in df.columns:
+            df.rename(columns={orig: 'Serviço'}, inplace=True)
+            break
+
     return df
 
 # Carrega dados
 data = load_data()
-# Sidebar: filtros de Cliente
+
+# Explode a coluna Serviço em linhas únicas
+if 'Serviço' in data.columns:
+    servico_expandidos = (
+        data[['PAE', 'Serviço']]
+        .dropna(subset=['Serviço'])
+        .assign(Serviço=lambda d: d['Serviço'].str.split(','))
+        .explode('Serviço')
+    )
+    servico_expandidos['Serviço'] = servico_expandidos['Serviço'].str.strip()
+    servico_unicos = sorted(servico_expandidos['Serviço'].unique())
+else:
+    servico_unicos = []
+
+# ——— SIDEBAR: FILTROS ———
 st.sidebar.header("Filtros")
+
+# Cliente
 clientes = sorted(data['CLIENTE'].dropna().unique()) if 'CLIENTE' in data.columns else []
-
-# Inicialização de session_state
 if 'clientes_selecionados' not in st.session_state:
-    # Se houver clientes, pré-seleciona o primeiro cliente; senão, deixa vazio
     st.session_state.clientes_selecionados = clientes[:1] if clientes else []
-
-# Botões de seleção rápida
 col1, col2 = st.sidebar.columns(2)
-if col1.button('✅ Todos'):
-    st.session_state.clientes_selecionados = clientes.copy()
-if col2.button('❌ Nenhum'):
-    st.session_state.clientes_selecionados = []
-
-# Multiselect fora de formulário, atualiza imediatamente
+if col1.button('✅ Todos'): st.session_state.clientes_selecionados = clientes.copy()
+if col2.button('❌ Nenhum'): st.session_state.clientes_selecionados = []
 selected_clientes = st.sidebar.multiselect(
-    "Cliente",
-    options=clientes,
+    "Cliente", clientes,
     default=st.session_state.clientes_selecionados,
-    key='clientes_selecionados',
-    help="Selecione um ou mais clientes"
+    key='clientes_selecionados'
 )
 
-# Outros filtros
+# Andamento e Status Contratual
 andamento = sorted(data['Andamento'].dropna().unique()) if 'Andamento' in data.columns else []
-selected_andamento = st.sidebar.multiselect("Andamento", andamento, default=andamento)
-
 status = sorted(data['Status contratual'].dropna().unique()) if 'Status contratual' in data.columns else []
+selected_andamento = st.sidebar.multiselect("Andamento", andamento, default=andamento)
 selected_status = st.sidebar.multiselect("Status Contratual", status, default=status)
 
-# Filtro por mês e ano de vencimento
+# Mês e Ano de Vencimento
 st.sidebar.subheader("Filtro por Mês e Ano de Vencimento")
-meses = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-]
-mes_selecionado = st.sidebar.selectbox("Selecione o mês", range(1, 13), format_func=lambda x: meses[x-1])
-ano_selecionado = st.sidebar.number_input("Selecione o ano", min_value=2000, max_value=2035, step=1, value=pd.Timestamp.now().year)
+meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
+mes_selecionado = st.sidebar.selectbox("Mês", range(1,13), format_func=lambda i: meses[i-1])
+ano_selecionado = st.sidebar.number_input("Ano", 2000, 2035, value=pd.Timestamp.now().year)
 
-# Filtrar contratos pelo mês e ano de vencimento
-if 'Vigência Término' in data.columns:
-    data['Mês de Vencimento'] = data['Vigência Término'].dt.month
-    data['Ano de Vencimento'] = data['Vigência Término'].dt.year
-    contratos_filtrados = data[
-        (data['Mês de Vencimento'] == mes_selecionado) & 
-        (data['Ano de Vencimento'] == ano_selecionado)
-    ]
-else:
-    contratos_filtrados = pd.DataFrame()
-
-# Exibir contratos do mês e ano selecionados
-st.subheader(f"Contratos com vencimento em {meses[mes_selecionado-1]} de {ano_selecionado}")
-st.markdown(f"**Total de processos encontrados:** {len(contratos_filtrados)}")
-st.dataframe(contratos_filtrados)
-
-if not contratos_filtrados.empty:
-    pdf_bytes = exportar_pdf(contratos_filtrados)
-    st.download_button(
-        '📄 Baixar processos filtrados em PDF',
-        data=pdf_bytes,
-        file_name='processos_filtrados_mes_ano.pdf',
-        mime='application/pdf',
-        key='download_mes_ano'
-    )
-
-# Filtro de vencimento por ano
+# Ano de Vencimento
 st.sidebar.subheader("Filtro por Ano de Vencimento")
-ano_vencimento_selecionado = st.sidebar.number_input(
-    "Selecione o ano de vencimento",
-    min_value=2000,
-    max_value=2035,
-    step=1,
-    value=2025
+ano_vencimento = st.sidebar.number_input("Ano de vencimento", 2000, 2035, value=pd.Timestamp.now().year)
+
+# Serviço
+st.sidebar.subheader("Filtro por Serviço")
+selected_servicos = st.sidebar.multiselect(
+    "Serviço(s):", servico_unicos, default=servico_unicos
 )
 
-# Filtrar contratos pelo ano de vencimento
-if 'Ano de Vencimento' in data.columns:
-    contratos_ano_filtrados = data[data['Ano de Vencimento'] == ano_vencimento_selecionado]
-else:
-    contratos_ano_filtrados = pd.DataFrame()
-
-# Exibir contratos do ano selecionado
-st.subheader(f"Contratos com vencimento no ano de {ano_vencimento_selecionado}")
-st.markdown(f"**Total de processos encontrados:** {len(contratos_ano_filtrados)}")
-st.dataframe(contratos_ano_filtrados)
-
-# Botão de download de PDF
-if not contratos_ano_filtrados.empty:
-    pdf_bytes = exportar_pdf(contratos_ano_filtrados)
-    st.download_button(
-        '📄 Baixar processos filtrados em PDF',
-        data=pdf_bytes,
-        file_name='processos_filtrados_ano.pdf',
-        mime='application/pdf',
-        key='download_ano'
-    )
-
-# Busca por número de processo
-st.subheader("Busca por Número do Processo")
-search_text = st.text_input("Digite parte do número do processo:")
-num_processo = sorted(data['PAE'].dropna().unique()) if 'PAE' in data.columns else []
-sugestoes = [str(p) for p in num_processo if search_text and search_text in str(p)]
-selected_processo = None
-if sugestoes:
-    selected_processo = st.selectbox("Selecione o processo:", sugestoes)
-
-# Aplica filtros
+# ——— APLICAÇÃO DOS FILTROS ———
+# DataFrame base para filtros combinados
 df = data.copy()
-if selected_processo:
-    df = df[df['PAE'].astype(str) == selected_processo]
+
+# Busca por mês/ano de término
+if 'Vigência Término' in df.columns:
+    df['Mês de Vencimento']   = df['Vigência Término'].dt.month
+    df['Ano de Vencimento']   = df['Vigência Término'].dt.year
+    df = df[
+        (df['Mês de Vencimento']==mes_selecionado) &
+        (df['Ano de Vencimento']==ano_selecionado)
+    ]
+
+# Filtro por Ano de vencimento
+df_ano = data[data.get('Ano de Vencimento', data['Vigência Término'].dt.year)==ano_vencimento] \
+    if 'Vigência Término' in data.columns else pd.DataFrame()
+
+# Filtrar por Cliente, Andamento, Status
+if selected_clientes:
+    df = df[df['CLIENTE'].isin(selected_clientes)]
+df = df[df['Andamento'].isin(selected_andamento)]
+df = df[df['Status contratual'].isin(selected_status)]
+
+# Filtrar por Serviço (qualquer correspondência)
+if selected_servicos:
+    paes_com_servico = servico_expandidos.query("Serviço in @selected_servicos")['PAE']
+    df_servico = data[data['PAE'].isin(paes_com_servico)]
 else:
-    if 'CLIENTE' in df.columns and selected_clientes:
-        df = df[df['CLIENTE'].isin(selected_clientes)]
-    if 'Andamento' in df.columns:
-        df = df[df['Andamento'].isin(selected_andamento)]
-    if 'Status contratual' in df.columns:
-        df = df[df['Status contratual'].isin(selected_status)]
+    df_servico = pd.DataFrame()
 
-# Exibição dos resultados
-st.markdown(f"**Total de processos encontrados:** {len(df)}")
-st.header("Dados Filtrados")
+# ——— EXIBIÇÃO ———
+st.subheader(f"Contratos com vencimento em {meses[mes_selecionado-1]} de {ano_selecionado}")
+st.markdown(f"**Total:** {len(df)}")
 st.dataframe(df)
-
-# Botão de download de PDF
 if not df.empty:
-    pdf_bytes = exportar_pdf(df)
-    st.download_button(
-        '📄 Baixar processos filtrados em PDF',
-        data=pdf_bytes,
-        file_name='processos_filtrados.pdf',
-        mime='application/pdf',
-        key='download_pdf'
-    )
+    st.download_button("📄 Baixar (mês/ano)", exportar_pdf(df), "mes_ano.pdf", "application/pdf")
+
+st.subheader(f"Contratos com vencimento no ano {ano_vencimento}")
+st.markdown(f"**Total:** {len(df_ano)}")
+st.dataframe(df_ano)
+if not df_ano.empty:
+    st.download_button("📄 Baixar (ano)", exportar_pdf(df_ano), "ano.pdf", "application/pdf")
+
+st.subheader("Processos filtrados por Serviço")
+st.markdown(f"**Total:** {len(df_servico)}")
+st.dataframe(df_servico)
+if not df_servico.empty:
+    st.download_button("📄 Baixar (serviço)", exportar_pdf(df_servico), "servico.pdf", "application/pdf")
+
+# Busca por Número de Processo
+st.subheader("Busca por Número do Processo")
+search_text = st.text_input("Digite parte do número:")
+options = sorted(data['PAE'].dropna().astype(str).unique())
+if search_text:
+    options = [o for o in options if search_text in o]
+selected = st.selectbox("Selecione:", options) if options else None
+df_search = data[data['PAE'].astype(str)==selected] if selected else pd.DataFrame()
+st.markdown(f"**Total:** {len(df_search)}")
+st.dataframe(df_search)
+if not df_search.empty:
+    st.download_button("📄 Baixar (busca)", exportar_pdf(df_search), "busca.pdf", "application/pdf")
