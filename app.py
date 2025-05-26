@@ -6,7 +6,6 @@ from fpdf import FPDF
 st.set_page_config(page_title="Localizador de Processos PAE", layout="wide")
 st.title("Localizador de Processos PAE")
 
-
 def exportar_pdf(df: pd.DataFrame) -> bytes:
     cols = ['PAE', 'CLIENTE', 'Andamento', 'Status contratual',
             'Vigência Início','Vigência Término','VALOR GLOBAL ATUAL','Setor']
