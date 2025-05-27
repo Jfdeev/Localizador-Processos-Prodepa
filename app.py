@@ -38,7 +38,6 @@ def exportar_pdf(df: pd.DataFrame) -> bytes:
 
     return pdf.output(dest='S').encode('latin-1')
 
-
 def load_data() -> pd.DataFrame:
     url = (
         "https://docs.google.com/spreadsheets/d/e/"
