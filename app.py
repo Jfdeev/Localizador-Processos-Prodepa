@@ -174,7 +174,6 @@ st.dataframe(df_mes_ano)
 if not df_mes_ano.empty:
     st.download_button("📄 Baixar (mês/ano)", exportar_pdf(df_mes_ano), "mes_ano.pdf", "application/pdf")
 
-
 st.subheader(f"Contratos com vencimento no ano {ano_vencimento}")
 st.markdown(f"**Total:** {len(df_ano)}")
 st.dataframe(df_ano)
