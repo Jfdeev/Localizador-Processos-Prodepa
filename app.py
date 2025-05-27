@@ -117,9 +117,12 @@ selected_status = st.sidebar.multiselect("Status Contratual", status, default=st
 
 # Mês e Ano de Vencimento
 st.sidebar.subheader("Filtro por Mês e Ano de Vencimento")
-meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
-mes_selecionado = st.sidebar.selectbox("Mês", range(1,13), format_func=lambda i: meses[i-1])
-ano_selecionado = st.sidebar.number_input("Ano", 2000, 2035, value=pd.Timestamp.now().year)
+meses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+]
+mes_selecionado = st.sidebar.selectbox("Selecione o mês", range(1, 13), format_func=lambda x: meses[x-1])
+ano_selecionado = st.sidebar.number_input("Selecione o ano", min_value=2000, max_value=2035, step=1, value=pd.Timestamp.now().year)
 
 # Ano de Vencimento
 st.sidebar.subheader("Filtro por Ano de Vencimento")
@@ -135,14 +138,17 @@ selected_servicos = st.sidebar.multiselect(
 # DataFrame base para filtros combinados
 df = data.copy()
 
-# Busca por mês/ano de término
+# Aplica filtro de mês e ano de vencimento após aplicar os outros filtros
 if 'Vigência Término' in df.columns:
-    df['Mês de Vencimento']   = df['Vigência Término'].dt.month
-    df['Ano de Vencimento']   = df['Vigência Término'].dt.year
-    df = df[
-        (df['Mês de Vencimento']==mes_selecionado) &
-        (df['Ano de Vencimento']==ano_selecionado)
+    df['Mês de Vencimento'] = df['Vigência Término'].dt.month
+    df['Ano de Vencimento'] = df['Vigência Término'].dt.year
+    df_mes_ano = df[
+        (df['Mês de Vencimento'] == mes_selecionado) &
+        (df['Ano de Vencimento'] == ano_selecionado)
     ]
+else:
+    df_mes_ano = pd.DataFrame()
+
 
 # Filtro por Ano de vencimento
 df_ano = data[data.get('Ano de Vencimento', data['Vigência Término'].dt.year)==ano_vencimento] \
@@ -163,10 +169,11 @@ else:
 
 # ——— EXIBIÇÃO ———
 st.subheader(f"Contratos com vencimento em {meses[mes_selecionado-1]} de {ano_selecionado}")
-st.markdown(f"**Total:** {len(df)}")
-st.dataframe(df)
-if not df.empty:
-    st.download_button("📄 Baixar (mês/ano)", exportar_pdf(df), "mes_ano.pdf", "application/pdf")
+st.markdown(f"**Total:** {len(df_mes_ano)}")
+st.dataframe(df_mes_ano)
+if not df_mes_ano.empty:
+    st.download_button("📄 Baixar (mês/ano)", exportar_pdf(df_mes_ano), "mes_ano.pdf", "application/pdf")
+
 
 st.subheader(f"Contratos com vencimento no ano {ano_vencimento}")
 st.markdown(f"**Total:** {len(df_ano)}")
