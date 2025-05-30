@@ -137,10 +137,10 @@ if not df.empty:
     st.download_button("📄 Baixar (geral)", exportar_pdf(df), "geral.pdf", "application/pdf")
 
 # Filtra Mês/Ano vencimento sobre df
-if 'Vigência Término' in df.columns:
-    df['Mês de Vencimento'] = df['Vigência Término'].dt.month
-    df['Ano de Vencimento'] = df['Vigência Término'].dt.year
-    df_mes_ano = df[(df['Mês de Vencimento']==mes_selecionado)&(df['Ano de Vencimento']==ano_selecionado)]
+if 'Vigência Término' in data.columns:
+    data['Mês de Vencimento'] = data['Vigência Término'].dt.month
+    data['Ano de Vencimento'] = data['Vigência Término'].dt.year
+    df_mes_ano = data[(data['Mês de Vencimento']==mes_selecionado)&(data['Ano de Vencimento']==ano_selecionado)]
 else:
     df_mes_ano = pd.DataFrame()
 
